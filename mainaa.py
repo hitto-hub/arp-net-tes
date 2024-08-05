@@ -3,7 +3,7 @@ from scapy.all import ARP, Ether, srp
 
 # ログ設定
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
-    logging.FileHandler("arp_log.txt"),
+    logging.FileHandler("arp_log.txt", encoding='utf-8'),
     logging.StreamHandler()
 ])
 
@@ -32,8 +32,6 @@ def send_arp_request(target_ip, iface):
         logging.error(f"Error sending ARP request: {e}")
 
 if __name__ == "__main__":
-    target_ip = "172.21.48.226"  # 送信先のIPアドレスを指定
-    iface = "eth0"  # 使用するNICのインターフェース名を指定
-    
+    target_ip = "192.168.1.1"  # 送信先のIPアドレスを指定
+    iface = "en0"  # 使用するNICのインターフェース名を指定 (適切なインターフェース名に変更)
     send_arp_request(target_ip, iface)
-    
