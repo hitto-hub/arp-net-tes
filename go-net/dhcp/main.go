@@ -34,7 +34,7 @@ type DHCPPacket struct {
 	File   [128]byte // 起動ファイル名（オプション）
 }
 
-// UDPソケットを開き、クライアントからのリクエストを待つ
+// メイン関数：UDPソケットを開き、クライアントからのDHCPリクエストを待ち受ける
 func main() {
 	// UDPソケットをポート67でリッスン（DHCPサーバーが使用するポート）
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{
@@ -44,13 +44,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("ソケット作成エラー: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() // ソケットの終了処理
 
 	log.Println("DHCPサーバーがポート67で待ち受けています...")
 
 	// 永遠にリクエストを待ち続けるループ
 	for {
-		handleDHCPRequest(conn)
+		handleDHCPRequest(conn) // DHCPリクエストを処理する関数を呼び出す
 	}
 }
 
@@ -111,6 +111,7 @@ func parseDHCPPacket(data []byte) (DHCPPacket, []byte, error) {
 // DHCPオプションからメッセージタイプを取得
 func getDHCPMessageType(options []byte) byte {
 	for i := 0; i < len(options)-1; i++ {
+		// オプション53はメッセージタイプを表す
 		if options[i] == 53 && len(options) > i+1 {
 			return options[i+1] // メッセージタイプの値を返す
 		}
@@ -129,10 +130,10 @@ func sendDHCPOffer(conn *net.UDPConn, addr *net.UDPAddr, discover DHCPPacket) {
 	offer.Xid = discover.Xid     // トランザクションIDをコピー
 	copy(offer.Chaddr[:], discover.Chaddr[:]) // ハードウェアアドレスをコピー
 
-	// 提供するIPアドレスを設定
+	// 提供するIPアドレスを設定（例として192.168.0.100を提案）
 	offer.Yiaddr = [4]byte{192, 168, 0, 100}
 
-	// オプションの設定
+	// オプションの設定（メッセージタイプ、サブネットマスク、サーバー識別子、リース時間など）
 	options := []byte{
 		53, 1, DHCPOffer,            // DHCPメッセージタイプ
 		1, 4, 255, 255, 255, 0,      // サブネットマスク
@@ -172,13 +173,13 @@ func sendDHCPAck(conn *net.UDPConn, addr *net.UDPAddr, request DHCPPacket) {
 	// リクエストされたIPアドレスを設定
 	ack.Yiaddr = request.Yiaddr
 
-	// オプションの設定
+	// オプションの設定（メッセージタイプ、サブネットマスク、サーバー識別子、リース時間など）
 	options := []byte{
-		53, 1, DHCPAck,               // DHCPメッセージタイプ (53: メッセージタイプ, 1バイト, 値はDHCPAck)
-		1, 4, 255, 255, 255, 0,       // サブネットマスク (1: サブネットマスクオプション, 4バイト, 255.255.255.0)
-		54, 4, 192, 168, 0, 1,        // サーバー識別子 (54: サーバー識別子オプション, 4バイト, 192.168.0.1)
-		51, 4, 0, 1, 81, 128,         // リース時間 (51: リース時間オプション, 4バイト, 3600秒=1時間)
-		255,                          // オプション終了 (255: オプション終了)
+		53, 1, DHCPAck,               // DHCPメッセージタイプ
+		1, 4, 255, 255, 255, 0,       // サブネットマスク
+		54, 4, 192, 168, 0, 1,        // サーバー識別子
+		51, 4, 0, 1, 81, 128,         // リース時間（3600秒=1時間）
+		255,                          // オプション終了
 	}
 
 	// バイト列にパケットをエンコード
